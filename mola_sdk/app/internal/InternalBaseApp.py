@@ -144,9 +144,10 @@ class InternalBaseApp(object):
 
         # debug infos
         info = t.info()
-        logging.debug('load %s.mo translate' % domain)
-        logging.debug('    current language: %s' % info['language'])
-        logging.debug('    last edit: %s' % info['po-revision-date'])
+        if info:
+            logging.debug('load %s.mo translate' % domain)
+            logging.debug('    current language: %s' % info['language'])
+            logging.debug('    last edit: %s' % info['po-revision-date'])
 
         # binding
         self._ = t.gettext
