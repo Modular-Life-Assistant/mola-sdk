@@ -4,7 +4,7 @@ import os
 from io import BytesIO
 
 # Pillow
-from PIL import ImageChops, ImageOps, ImageStat
+from PIL import ImageOps
 from PIL import Image as ImagePil
 
 # OpenCV
@@ -20,12 +20,13 @@ class Image(object):
         self.__opencv = self.__pil = None
         self.__zones = []
 
+        if not pil_image and path and not raw:
+            with open(path, 'rb') as f:
+                raw = f.read()
+
         # PIL
         if pil_image:
             self.__pil = pil_image
-
-        elif path:
-            self.__pil = ImagePil.open(path)
 
         elif raw:
             self.__pil = ImagePil.open(BytesIO(raw))
