@@ -31,6 +31,7 @@ class InternalBaseApp(object):
                 1: logging.INFO,
             }.get(kwargs['verbose'], logging.DEBUG))
 
+        super(InternalBaseApp, self).__init__(**kwargs)
         logging.info('init...')
         self.__init_internationalization()
         self.init()

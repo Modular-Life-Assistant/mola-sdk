@@ -1,5 +1,7 @@
 import logging
 
+from mola_sdk.event import get_handlers
+
 
 class Event(object):
     def __init__(self, source, **kwargs):
@@ -23,4 +25,7 @@ class Event(object):
 
     def fire(self):
         """Send event to network"""
-        logging.debug('Fire event: %s' % self)
+        handlers = get_handlers(self.__class__)
+        logging.debug('Fire event: %s(%d)' % (self, len(handlers)))
+        for handler in handlers:
+            handler(self)
