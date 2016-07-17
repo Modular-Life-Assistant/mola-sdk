@@ -16,23 +16,24 @@ class InternalBaseApp(object):
     files_path = '/tmp'
     is_running = False
 
-    def __init__(self):
+    def __init__(self, parse_arg=True, **kwargs):
         self.init_log()
-        self.__load_arg_command()
+        if parse_arg:
+            kwargs.update(self.__load_arg_command())
+
+        # set data files path
+        if kwargs.get('path'):
+            self.files_path = kwargs['path']
+
+        # set verbose level
+        if kwargs.get('verbose'):
+            logging.getLogger().setLevel({
+                1: logging.INFO,
+            }.get(kwargs['verbose'], logging.DEBUG))
 
         logging.info('init...')
         self.__init_internationalization()
         self.init()
-
-        logging.info('run...')
-        self.is_running = True
-        self.started()
-        threading.Thread(None, self.__internal_run, 'internal_run').start()
-        self.run()
-
-        logging.info('stop...')
-        self.stop()
-        self.stopped()
 
     def delete_file(self, name):
         """Delete content data."""
@@ -63,6 +64,18 @@ class InternalBaseApp(object):
         with open(self.get_file_path(name), 'w') as f:
             json.dump(content, f)
 
+    def start(self):
+        """Start this app."""
+        logging.info('run...')
+        self.is_running = True
+        self.started()
+        threading.Thread(None, self.__internal_run, 'internal_run').start()
+        self.run()
+
+        logging.info('stop...')
+        self.stop()
+        self.stopped()
+
     def stop(self):
         """Stop this app."""
         self.is_running = False
@@ -74,9 +87,18 @@ class InternalBaseApp(object):
             for i in ['day', 'hour', 'min', 'month', 'week', 'year']
         }
 
+        # to datetime
+        for name in ['month', 'year']:
+            last_timestamp_cron[name] = datetime.fromtimestamp(
+                last_timestamp_cron[name]
+            )
+
+        def diff_month(d1, d2):
+            return (d1.year - d2.year) * 12 + d1.month - d2.month
+
         while self.is_running:
             current_time = time.time()
-            current_datetime = datetime.now()
+            current_datetime = datetime.fromtimestamp(current_time)
 
             # cron min
             if 60 <= current_time - last_timestamp_cron['min']:
@@ -89,28 +111,23 @@ class InternalBaseApp(object):
                 self.__run_cron('hour', current_time)
 
             # cron day
-            if current_datetime.today() > datetime.fromtimestamp(
-                    last_timestamp_cron['day']).today():
+            if 24 * 60 * 60 <= current_time - last_timestamp_cron['day']:
                 last_timestamp_cron['day'] = current_time
                 self.__run_cron('day', current_time)
 
             # cron week
-            last = datetime.fromtimestamp(last_timestamp_cron['week'])
-            if current_datetime.today() != last.today() \
-                    and current_datetime.weekday() == last.weekday():
+            if 7 * 24 * 60 * 60 <= current_time - last_timestamp_cron['week']:
                 last_timestamp_cron['week'] = current_time
                 self.__run_cron('week', current_time)
 
             # cron month
-            if current_datetime.month != datetime.fromtimestamp(
-                    last_timestamp_cron['month']).month:
-                last_timestamp_cron['month'] = current_time
+            if diff_month(current_datetime, last_timestamp_cron['month']):
+                last_timestamp_cron['month'] = current_datetime
                 self.__run_cron('month', current_time)
 
             # cron year
-            if current_datetime.year > datetime.fromtimestamp(
-                    last_timestamp_cron['year']).year:
-                last_timestamp_cron['year'] = current_time
+            if current_datetime.year > last_timestamp_cron['year'].year:
+                last_timestamp_cron['year'] = current_datetime
                 self.__run_cron('year', current_time)
 
             time.sleep(1)
@@ -119,17 +136,7 @@ class InternalBaseApp(object):
         parser = argparse.ArgumentParser(description='MoLA App')
         parser.add_argument('--path', action='store', default=self.files_path)
         parser.add_argument('-v', '--verbose', action='count', default=0)
-        args = vars(parser.parse_args())
-
-        # set data files path
-        if args['path']:
-            self.files_path = args['path']
-
-        # set verbose level
-        if args['verbose']:
-            logging.getLogger().setLevel({
-                1: logging.INFO,
-            }.get(args['verbose'], logging.DEBUG))
+        return vars(parser.parse_args())
 
     def __run_cron(self, cron_type, current_time):
         cron_type = 'cron_%s' % cron_type

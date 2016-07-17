@@ -1,3 +1,5 @@
+import time
+
 from mola_sdk.app.internal.InternalBaseApp import InternalBaseApp
 from mola_sdk.event.internal.AppEventHelper import AppEventHelper
 
@@ -38,7 +40,8 @@ class BaseApp(InternalBaseApp, AppEventHelper):
 
     def run(self):
         """This app loop running."""
-        pass
+        while self.is_running:
+            time.sleep(5)
 
     def started(self):
         """This app has been started."""
