@@ -7,8 +7,6 @@ from mola_sdk.event.message import *
 
 class AppEventHelper(object):
     def __init__(self, *args, **kwargs):
-        super(AppEventHelper, self).__init__(*args, **kwargs)
-
         # search and binh event handler
         attributes = [getattr(self, f) for f in dir(self)]
         for handler in [f for f in attributes if callable(f)]:
